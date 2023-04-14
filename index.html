@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>播放器</title>
+    <link rel="stylesheet" href="./css/index.css">
+    <script src="https://lf1-cdn-tos.bytegoofy.com/obj/iconpark/svg_23070_8.6da19cca011812b8325da7d2b160b66f.js"></script>
+</head>
+<body>
+    <div id="root">
+        <div class="player">
+            <div class="cover" style="background-image: url(./assets/kugouMusic/Mycookiecan.jpg);"></div>
+            <div class="panel">
+                <div class="title">真的吗</div>
+                <div class="author">莫文蔚</div>
+                <div class="progress">
+                    <div class="bar-container">
+                        <div class="bar" style="width: 0%;"><span class="circle"></span></div>
+                    </div>
+                    <div class="duration">
+                        <span class="current">0:00</span>
+                        <span class="total">4:25</span>
+                    </div>
+                </div>
+                <div class="control">
+                    <div class="mode normal">
+                        <svg class="iconpark-icon icon-normal"><use href="#play-cycle-8iicc72e"></use></svg>
+                    <svg class="iconpark-icon icon-circle"><use href="#play-once"></use></svg>
+                    <svg class="iconpark-icon icon-shuffle"><use href="#shuffle-one"></use></svg>
+                    </div>
+                    <svg class="iconpark-icon icon-pre"><use href="#go-start"></use></svg>
+                    <svg class="iconpark-icon icon-pause hide"><use href="#pause"></use></svg>
+                    <svg class="iconpark-icon icon-play"><use href="#play-one"></use></svg>
+                    <svg class="iconpark-icon icon-next"><use href="#go-end"></use></svg>
+                    <svg class="iconpark-icon icon-list"><use href="#list-top"></use></svg>
+                </div>
+            </div>
+        </div>
+        <div class="list">
+        
+        </div>
+    </div>
+    
+    <script>
+        const list = [ 
+{
+  "id": "1",
+  "title": "想念是凋谢的云",
+  "author": "DJ甜甜、宋烨靓、解药",
+  "albumn": "在你身边",
+  "lyric": "./assets/lyric_烦恼歌.json",
+  "url": "./assets/kugouMusic/DJ甜甜、宋烨靓、解药 - 想念是凋谢的云(bq).mp3",
+  "cover": "./assets/kugouMusic/想念是凋谢的云.jpg"
+},
+{
+  "id": "2",
+  "title": "天气说变冷就变冷",
+  "author": "K.D",
+  "albumn": "在你身边",
+  "lyric": "./assets/lyric_烦恼歌.json",
+  "url": "./assets/kugouMusic/K.D - 天气说变冷就变冷(bq).mp3",
+  "cover": "./assets/kugouMusic/天气说变冷就变冷.jpg"
+},
+{
+  "id": "3",
+  "title": "果汁分你一半",
+  "author": "KBShinya、哦漏",
+  "albumn": "在你身边",
+  "lyric": "./assets/lyric_烦恼歌.json",
+  "url": "./assets/kugouMusic/KBShinya、哦漏 - 果汁分你一半(bq).mp3",
+  "cover": "./assets/kugouMusic/果汁分你一半.jpg"
+},
+{
+  "id": "4",
+  "title": "My Heart Will Go On",
+  "author": "MuSik I、满舒克、廖伟珊",
+  "albumn": "在你身边",
+  "lyric": "./assets/lyric_烦恼歌.json",
+  "url": "./assets/kugouMusic/MuSik I、满舒克、廖伟珊 - My Heart Will Go On(bq).mp3",
+  "cover": "./assets/kugouMusic/MyHeartWillGoOn.jpg"
+}
+]
+        const audioObject = new Audio()
+        const $pause = document.querySelector('.icon-pause')
+        const $play = document.querySelector('.icon-play')
+        const $current = document.querySelector('.current')
+        const $total = document.querySelector('.total')
+        const $bar = document.querySelector('.bar')
+        const $pre = document.querySelector('.icon-pre')
+        const $next = document.querySelector('.icon-next')
+        const $title = document.querySelector('.title')
+        const $author = document.querySelector('.author')
+        const $cover = document.querySelector('.cover')
+        const $barContainer = document.querySelector('.bar-container')
+        const $circle = document.querySelector('.bar-container .circle')
+        const $panel = document.querySelector('.panel')
+        const $mode = document.querySelector('.mode')
+        const $normal = document.querySelector('.icon-cycle')
+        const $cycle = document.querySelector('.icon-once')
+        const $listIcon = document.querySelector('.icon-list')
+        const $list = document.querySelector('.list')
+
+        let modes = ['normal','circle','shuffle']
+        let index = 0
+        let clock = null
+        let modeIndex = 0 //normal  circle shuffle
+        let clock2 = null //用于优化拖拽播放卡顿
+        let isDrag = false
+        renderList()
+
+        //播放列表
+        $listIcon.onclick = function() {
+            $list.classList.toggle('show')
+        }
+        function renderList() {
+           const $ul = document.createElement('ul')
+           const $doms = list.map((songObj,idx) => {
+            let $li = document.createElement('li')
+            if(idx === index) {
+                $li.classList.add('active')
+            }
+            
+            $li.append((idx+1)+ '. ' + songObj.title)
+            return $li
+           })
+           $ul.append(...$doms)
+           $list.append($ul)
+           
+        }
+        function setListActive() {
+            const $$arrayLi = $list.querySelectorAll('li')
+            $$arrayLi.forEach($li => {
+                $li.classList.remove('active')
+                $$arrayLi[index].classList.add('active')
+            })
+        }
+        $list.onclick = function(e) {
+            if(e.target.tagName === 'LI') {
+                const arrLi = [...this.querySelectorAll('li')]
+                index = arrLi.indexOf(e.target)
+                playIndex(index)
+                this.querySelectorAll('li').forEach(val =>  val.classList.remove('active')
+                )
+                e.target.classList.add('active')
+                this.classList.remove('show')
+            }
+        }
+        // 播放模式
+        $mode.onclick = function() {
+            modeIndex = (++modeIndex)%modes.length
+            $mode.classList.remove(...modes)
+            $mode.classList.add(modes[modeIndex])
+        }
+    function setAudio(index = 0) {
+        let currentAudio = list[index]
+        audioObject.src = currentAudio.url
+        $title.innerText = currentAudio.title 
+        $author.innerText = currentAudio.author 
+        $cover.style.backgroundImage= `url(${currentAudio.cover})`
+    }
+    setAudio(index)
+        //播放
+        $play.addEventListener('click',function() {
+            audioObject.play()
+            this.classList.add('hide')
+            $pause.classList.remove('hide')
+            clock = setInterval(() => {
+                $current.innerText = secondToStr(audioObject.currentTime)
+                $bar.style.width = (audioObject.currentTime/audioObject.duration)*100+'%'
+
+            },1000)
+        })
+        //暂停
+        $pause.addEventListener('click',function() {
+            audioObject.pause()
+            this.classList.add('hide')
+            $play.classList.remove('hide')
+            clearInterval(clock)
+
+        })
+        
+        //时间转换
+        function secondToStr(second) {
+            second = parseInt(second)
+            let min = parseInt(second/60,10)
+            let sec = second%60
+            sec = sec>=10 ? '' +sec : '0'+sec
+            return min +':' +sec
+        }
+        //上一曲
+        function shouldPlay() {
+            return $play.classList.contains('hide')
+        }
+        function playIndex(i) {
+            index = i
+            setAudio(index)
+            if(shouldPlay()) {
+                audioObject.play()
+            }else {
+                audioObject.pause()
+            }
+            setListActive()
+        }
+        function playPre() {
+            index--
+            if(index < 0 ){
+                index = list.length - 1
+            }
+            playIndex(index)
+        }
+        $pre.onclick = playPreWithMode
+        //下一曲
+        function playNext() {
+            index++
+            if(index >= list.length){
+                index = 0
+            }
+            playIndex(index)
+            }
+        
+        $next.onclick = playNextWithMode
+        audioObject.onended = playNextWithMode     
+    function playNextWithMode(){
+        if(modes[modeIndex] === 'normal') {
+               playNext()
+        }else if(modes[modeIndex] === 'circle') {
+            playIndex(index)
+        }else if(modes[modeIndex] === 'shuffle') {
+            let newIndex = Math.floor(list.length*Math.random())
+            playIndex(newIndex)
+        }
+    }
+    function playPreWithMode(){
+        if(modes[modeIndex] === 'normal') {
+               playPre()
+        }else if(modes[modeIndex] === 'circle') {
+            playIndex(index)
+        }else if(modes[modeIndex] === 'shuffle') {
+            let newIndex = Math.floor(list.length*Math.random())
+            playIndex(newIndex)
+        }
+    }
+       //音乐进度  oncanplay是否加载完成事件
+       audioObject.oncanplay = function() {
+            $total.innerText = secondToStr(this.duration)
+        }
+        //点击进度条
+        
+        $barContainer.onclick = function(e) {
+            let rect = this.getBoundingClientRect()
+                let offsetX = e.clientX - rect.x
+                let percent = offsetX/this.offsetWidth
+                $bar.style.width = percent*100+'%'
+            audioObject.currentTime = percent*audioObject.duration
+        }
+        //拖拽进度条
+        //PC端
+
+        $circle.onmousedown = onmousedown
+        function onmousedown() {
+            isDrag = true
+        }
+        $circle.onmouseup = onmouseup
+        function onmouseup() {
+            isDrag = false
+        }
+        $panel.onmousemove = onmousemove
+        function onmousemove(e) {
+            if(isDrag) {
+                
+                let rect = $barContainer.getBoundingClientRect()
+                let clientX = e.clientX || e.touches[0].clientX
+                let offsetX = clientX - rect.x
+                let percent = offsetX/$barContainer.offsetWidth
+                $bar.style.width = percent*100+'%'
+                if(clock2) {
+                    clearTimeout(clock2)
+                }
+                clock2 = setTimeout(() => {
+                    audioObject.currentTime = percent*audioObject.duration
+                    $current.innerText = secondToStr(audioObject.currentTime)
+                    
+                }, 100);
+            }
+        }
+        //移动端
+        $circle.ontouchstart = onmousedown
+        $circle.ontouchend = onmouseup
+        $panel.ontouchmove = onmousemove
+
+        
+    </script>
+</body>
+</html>
